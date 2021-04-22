@@ -1,3 +1,4 @@
+import math
 from uuid import uuid4
 from urllib.parse import urljoin
 
@@ -31,7 +32,7 @@ def check_connection(session):
     return response.status_code == requests.codes.ok
 
 
-def _make_response_to_card_list_endpoint(session, offset=0, limit=10):
+def _get_response_from_card_list_endpoint(session, offset, limit):
     """Получение "сырых" данных с API-эндпоинта,
        возвращающего список карточек товаров.
     """
@@ -42,7 +43,7 @@ def _make_response_to_card_list_endpoint(session, offset=0, limit=10):
     return response.json()
 
 
-def get_products_list(session, offset, limit):
+def get_products_list(session, offset=0, limit=10):
     """Получение генератора с "сырыми" данными в формате JSON.
        Каждый вызов функции next() возвращает 1 объект.
 
@@ -54,12 +55,22 @@ def get_products_list(session, offset, limit):
             Возвращает:
                 product (json): Генератор.
     """
-    response_data = _make_response_to_card_list_endpoint(
-        session=session, offset=offset, limit=limit
-    )
+    response_data = _get_response_from_card_list_endpoint(
+        session=session, offset=offset, limit=1)
 
     if "result" not in response_data:
         return
 
-    for product in response_data["result"]["cards"]:
-        yield product
+    _TOTAL_PRODUCTS = response_data["result"]["cursor"]["total"]
+
+    for _products_list, idx in enumerate(range(1, math.ceil(_TOTAL_PRODUCTS / limit) + 1)):
+
+        response_data = _get_response_from_card_list_endpoint(
+            session=session, offset=limit*idx, limit=limit)
+
+        if "result" not in response_data:
+            continue
+
+        products = response_data["result"]["cards"]
+        for product in products:
+            yield product
