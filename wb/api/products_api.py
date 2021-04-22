@@ -35,6 +35,11 @@ def check_connection(session):
 def _get_response_from_card_list_endpoint(session, offset, limit):
     """Получение "сырых" данных с API-эндпоинта,
        возвращающего список карточек товаров.
+
+       Параметры:
+                offset (int): Количество карточек,
+                              которые с самого начала списка нужно пропустить.
+                limit (int): Максимальное количество карточек, которые надо вывести.
     """
     response = session.post(
         url=urljoin(BASE_API, "/card/list"),
@@ -43,30 +48,27 @@ def _get_response_from_card_list_endpoint(session, offset, limit):
     return response.json()
 
 
-def get_products_list(session, offset=0, limit=10):
+def get_products_list(session):
     """Получение генератора с "сырыми" данными в формате JSON.
        Каждый вызов функции next() возвращает 1 объект.
-
-            Параметры:
-                offset (int): Количество карточек,
-                              которые с самого начала списка нужно пропустить.
-                limit (int): Максимальное количество карточек, которые надо вывести.
 
             Возвращает:
                 product (json): Генератор.
     """
+    _LIMIT = 10  # Максимальное количество карточек, которые надо вывести.
+
     response_data = _get_response_from_card_list_endpoint(
-        session=session, offset=offset, limit=1)
+        session=session, offset=0, limit=1)
 
     if "result" not in response_data:
         return
 
     _TOTAL_PRODUCTS = response_data["result"]["cursor"]["total"]
 
-    for _products_list, idx in enumerate(range(1, math.ceil(_TOTAL_PRODUCTS / limit) + 1)):
+    for _products_list, idx in enumerate(range(0, math.ceil(_TOTAL_PRODUCTS / _LIMIT) + 1)):
 
         response_data = _get_response_from_card_list_endpoint(
-            session=session, offset=limit*idx, limit=limit)
+            session=session, offset=idx*_LIMIT, limit=_LIMIT)
 
         if "result" not in response_data:
             continue

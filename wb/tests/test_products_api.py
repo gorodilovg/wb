@@ -1,7 +1,6 @@
 import types
 
 import requests
-import pytest
 
 from wb.api.products_api import (
     check_connection,
@@ -29,10 +28,5 @@ def test_get_response_from_card_list_endpoint():
     assert response_data["result"]["cards"], "в ответе, должен быть обьект rusult со списком cards"
 
 def test_get_products_list_returns_generator():
-    products = get_products_list(session=s, offset=0, limit=2)
+    products = get_products_list(session=s)
     assert isinstance(products, types.GeneratorType), "функция должна вернуть генератор"
-
-
-# products = get_products_list(session=s, offset=0, limit=3)
-#
-# print(len(list(products)))

@@ -41,6 +41,7 @@ def _get_response_from_orders_list_endpoint(session, from_datetime):
     response = session.get(
         url=urljoin(BASE_API, "/api/v1/supplier/orders"),
         params=_get_initial_params(from_datetime=from_datetime))
+
     if response.status_code == requests.codes.ok:
         return response.json()
 
