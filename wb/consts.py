@@ -1,3 +1,5 @@
-SUPPLIER_ID = "1dcb7ee0-c876-5744-b19e-aa11e159abf0" # ID поставщика, нужен для работы через Content API
-AUTHORIZATION_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3NJRCI6ImNkMTQ1MTM0LTNkMTktNDlmZi04NjFhLWEwZjBjNjgwYzUwZCJ9.CEH2cD8ctIjd0zPndLKBxrd_mWV7l4w5hyWusJKM4xg" # токен для работы с Content API
-API_KEY = "NTNlZGI4NzItYmI0ZS00NzI1LThlZDctMGRiNTcwYmI4MTRi" # x64 ключ для работы с API статистики
+SUPPLIER_ID = "1dcb7ee0-c876-5744-b19e-aa11e159abf0"  # ID поставщика, нужен для работы через Content API
+CONTENT_API_AUTHORIZATION_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3NJRCI6ImNkMTQ1MTM0LTNkMTktNDlmZi04NjFhLWEwZjBjNjgwYzUwZCJ9.CEH2cD8ctIjd0zPndLKBxrd_mWV7l4w5hyWusJKM4xg"  # токен для работы с Content API
+STATISTICS_API_KEY = "NTNlZGI4NzItYmI0ZS00NzI1LThlZDctMGRiNTcwYmI4MTRi"  # x64 ключ для работы с API статистики
+ORDERS_TOKEN_TEST = "45ed365a9c5982bd9583a963bfeea940ed7369298ced91b0f8d829dc8cfbf88d"
+ORDERS_API_TOKEN = "0a34fc9f5a6453b4a2618d5676c89b4f2ebe3caacfa4c47a284233d4a13418bc"

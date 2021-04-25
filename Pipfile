@@ -8,6 +8,8 @@ django = "*"
 requests = "*"
 pytest = "*"
 python-dateutil = "*"
+pytz = "*"
+pandas = "*"
 
 [dev-packages]
 
