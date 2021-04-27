@@ -1,13 +1,12 @@
 import datetime
-import time
 
-import dateutil.parser
+from pytz import timezone
 
 from wb.consts import (
     CONTENT_API_AUTHORIZATION_TOKEN, SUPPLIER_ID,
     STATISTICS_API_KEY, ORDERS_API_TOKEN
 )
-from wb.api import check_connection, product_list, order_list
+from wb.api import check_connection, product_list, fbs_order_list
 
 
 ACCESS = {
@@ -27,19 +26,16 @@ def test_get_products_list_returns_cards():
 
 
 def test_order_list():
-    from_datetime = datetime.datetime(year=2021, month=4, day=1)
-    to_datetime = datetime.datetime(year=2021, month=4, day=25)
-    orders = order_list(ACCESS, from_datetime, to_datetime)
+    tz = timezone('UTC')
+    from_datetime = tz.localize(datetime.datetime(year=2021, month=4, day=1))
+    to_datetime = tz.localize(datetime.datetime(year=2021, month=4, day=25))
+    orders = fbs_order_list(ACCESS, from_datetime, to_datetime)
     assert list(orders), "функция должна вернуть не пустой список заказов"
 
 
-from_datetime = datetime.datetime(year=2021, month=4, day=17)
-to_datetime = datetime.datetime(year=2021, month=4, day=19, hour=23, minute=59)
-orders = list(
-    sorted(
-        order_list(ACCESS, from_datetime, to_datetime),
-        key=lambda order: dateutil.parser.parse(order["date_created"])
-    )
-)
-
-print()
+# tz = timezone('UTC')
+# from_datetime = tz.localize(datetime.datetime(year=2021, month=4, day=1))
+# to_datetime = tz.localize(datetime.datetime(year=2021, month=4, day=25))
+# orders = list(fbs_order_list(ACCESS, from_datetime, to_datetime))
+#
+# print()
