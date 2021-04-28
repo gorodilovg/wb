@@ -235,13 +235,12 @@ def fbs_order_list(access, from_datetime, to_datetime):
     order_items_df = order_items_df.merge(sales_df, on='rid', how='left')
     order_items_df = order_items_df.merge(orders_statuses_df, on='order_id', how='left')
 
-    for order, order_items in order_items_df.groupby(
-            by=['order_id', 'date_created', 'wb_wh_id', 'status'],
-            dropna=False):
+    for order, order_items in order_items_df.fillna(0).groupby(
+            by=['order_id', 'date_created', 'wb_wh_id', 'status']):
         yield {
-            'order_id': order[0],
+            'order_id': int(order[0]),
             'date_created': order[1],
-            'wb_wh_id': order[2],
-            'status': order[3],
+            'wb_wh_id': int(order[2]),
+            'status': int(order[3]),
             'items': order_items.to_dict(orient='records')
         }
