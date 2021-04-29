@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import ProductCard, Store, ProductCardImage
+from .models import ProductCard, Store, ProductCardImage, Order, OrderItem
 
 
 @admin.register(ProductCard)
@@ -18,3 +18,15 @@ class ProductCardAdmin(admin.ModelAdmin):
 @admin.register(ProductCardImage)
 class ProductCardAdmin(admin.ModelAdmin):
     pass
+
+
+@admin.register(Order)
+class OrderAdmin(admin.ModelAdmin):
+    list_display = ('id', 'number', 'created_at', 'updated_at')
+    list_display_links = ('number', )
+
+
+@admin.register(OrderItem)
+class OrderItemAdmin(admin.ModelAdmin):
+    list_display = ('id', 'order', 'price', 'product_card', 'updated_at')
+    list_display_links = ('order',)

@@ -20,13 +20,14 @@ ACCESS = {
     "ORDERS_API_TOKEN": ORDERS_API_TOKEN
 }
 tz = timezone('UTC')
-from_datetime = tz.localize(datetime.datetime(year=2021, month=4, day=1))
-to_datetime = tz.localize(datetime.datetime(year=2021, month=4, day=25))
 
+
+from_datetime = tz.localize(datetime.datetime(year=2021, month=4, day=1))
+to_datetime = tz.localize(datetime.datetime(year=2021, month=4, day=30))
 
 class Command(BaseCommand):
 
     def handle(self, *args, **options):
         store = Store.objects.get(pk=1)
-        for _posting in api.fbs_order_list(ACCESS):
-            order = utils.make_fbw_order(store, _posting)
+        for _posting in api.fbs_order_list(ACCESS, from_datetime, to_datetime):
+            order = utils.make_fbs_order(store, _posting)

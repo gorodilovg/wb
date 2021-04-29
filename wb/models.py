@@ -151,6 +151,9 @@ class Order(IdentifierMixin):
     store = models.ForeignKey('Store', on_delete=models.SET_NULL,
                               related_name='orders', null=True)
 
+    def __str__(self):
+        return self.number
+
 
 class OrderItem(models.Model):
     updated_at = models.DateTimeField(
@@ -188,8 +191,14 @@ class OrderItem(models.Model):
     order = models.ForeignKey('Order', on_delete=models.CASCADE,
                               related_name='items', null=True)
 
-    ozon_fbs_sku = models.CharField(max_length=128, default='', blank=True)
-    ozon_fbo_sku = models.CharField(max_length=128, default='', blank=True)
+    wb_fbs_sku = models.CharField(max_length=128, default='', blank=True)
 
     raw_product_data = JSONField(default=raw_data_default)
     raw_financial_data = JSONField(default=raw_data_default)
+
+    @property
+    def product_data_checksum(self):
+        return hashlib.md5(json.dumps(self.raw_product_data, sort_keys=True).encode('utf-8')).hexdigest()
+
+    def __str__(self):
+        return self.order.number

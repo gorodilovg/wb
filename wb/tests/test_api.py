@@ -27,15 +27,15 @@ def test_get_products_list_returns_cards():
 
 def test_order_list():
     tz = timezone('UTC')
-    from_datetime = tz.localize(datetime.datetime(year=2021, month=4, day=1))
-    to_datetime = tz.localize(datetime.datetime(year=2021, month=4, day=25))
+    from_datetime = tz.localize(datetime.datetime(year=2021, month=4, day=13))
+    to_datetime = tz.localize(datetime.datetime(year=2021, month=4, day=17))
     orders = fbs_order_list(ACCESS, from_datetime, to_datetime)
     assert list(orders), "функция должна вернуть не пустой список заказов"
 
 
-# tz = timezone('UTC')
-# from_datetime = tz.localize(datetime.datetime(year=2021, month=4, day=1))
-# to_datetime = tz.localize(datetime.datetime(year=2021, month=4, day=25))
-# orders = list(fbs_order_list(ACCESS, from_datetime, to_datetime))
-#
-# print()
+tz = timezone('UTC')
+from_datetime = tz.localize(datetime.datetime(year=2021, month=4, day=13))
+to_datetime = tz.localize(datetime.datetime(year=2021, month=4, day=14))
+orders = list(fbs_order_list(ACCESS, from_datetime, to_datetime))
+
+print()
