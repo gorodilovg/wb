@@ -12,6 +12,7 @@ pandas = "*"
 django-environ = "*"
 django = "==2.2"
 psycopg2-binary = "*"
+simplejson = "*"
 
 [dev-packages]
 
