@@ -4,37 +4,39 @@ import json
 
 import dateutil.parser
 import numpy as np
-import simplejson
 from django.db import transaction
 from django.utils import timezone
 
-# from ..models import Order, OrderItem, ProductCard
-from wildberries.models import Order, OrderItem, ProductCard
+from ..models import Order, OrderItem, ProductCard
 
 
 def get_product_price(variations):
     for variation in variations:
-        for addin_object in variation['addin']:
+        for addin_object in variation['addin'] or []:
             if addin_object['type'] == 'Розничная цена':
                 return decimal.Decimal(addin_object['params'][0]['count'])
+    return decimal.Decimal(0)
 
 
 def get_product_images(addin):
     for addin_object in addin:
         if addin_object['type'] == 'Фото':
             return [image['value'] for image in addin_object['params']]
+    return []
 
 
 def get_product_name(addin):
     for addin_object in addin:
         if addin_object['type'] == 'Наименование':
             return addin_object['params'][0]['value'][:256]
+    return '#####'
 
 
 def get_product_description(addin):
     for addin_object in addin:
         if addin_object['type'] == 'Описание':
             return addin_object['params'][0]['value']
+    return ''
 
 
 def make_product_card(store, raw_data):
@@ -136,7 +138,7 @@ def make_fbs_order(store, raw_data, rebuild=False):
                     'in_process_at': timezone.localtime(dateutil.parser.parse(_order['date_created'])),
                     'number': _order['order_id'],
                     'posting_type': Order.WILDBERRIES_FBS,
-                    # 'status': Order.parse_status(_order['status'], 'wildberries'),
+                    'status': Order.parse_status(_order['status'], 'wildberries')
                 }
             )
         except Order.MultipleObjectsReturned:
@@ -158,16 +160,16 @@ def make_fbs_order(store, raw_data, rebuild=False):
             return order
 
         for _product_data in _order['items']:
-            if np.isnan(_product_data['nm_id']):
-                continue
-
             order_item_changed = False
 
             try:
                 order_item, _ = order.items.get_or_create(
-                    wildberries_fbs_sku=_product_data['nm_id'],
+                    wildberries_character_id=_product_data['chrt_id'],
                     defaults={
-                        'wildberries_character_id': _product_data['chrt_id']
+                        'quantity': _product_data['quantity'] or 1,
+                        'price': _product_data['total_price'],
+                        'commission': _product_data['retail_commission'],
+                        'delivery_cost': _product_data['delivery_rub'],
                     }
                 )
             except OrderItem.MultipleObjectsReturned:
@@ -175,7 +177,7 @@ def make_fbs_order(store, raw_data, rebuild=False):
                 # удаляем их
 
                 order_item_qs = order.items \
-                    .filter(wildberries_fbs_sku=_product_data['nm_id']) \
+                    .filter(wildberries_character_id=_product_data['chrt_id']) \
                     .order_by('id')
                 order_item = order_item_qs.first()
 
@@ -189,10 +191,8 @@ def make_fbs_order(store, raw_data, rebuild=False):
                 order_item_changed = True
 
                 order_item.raw_product_data = _product_data
-                order_item.quantity = _product_data['quantity']
-                order_item.price = _product_data['total_price'] / 100  # перевод копеек в рубли
-                order_item.commission = _product_data['retail_commission']
-                order_item.delivery_cost = _product_data['delivery_rub']
+
+                order_item.quantity = _product_data['quantity'] or 1
 
                 if not order_item.product_card_id:
                     try:
@@ -201,11 +201,10 @@ def make_fbs_order(store, raw_data, rebuild=False):
                             defaults={
                                 'created_at': dateutil.parser.parse(_order['date_created']),
                                 'updated_at': now,
-                                'sku': _product_data['sa_name'],
-                                'name': _product_data['subject_name'],
-                                'price': _product_data['total_price'] / 100,  # перевод копеек в рубли,
-                                'wildberries_fbs_sku': _product_data['nm_id'],
-                                'wildberries_character_id': _product_data['chrt_id'],
+                                'sku': '#####',
+                                'name': '#####',
+                                'price': _product_data['total_price'],
+                                'wildberries_fbs_sku': _product_data['nm_id'] or 0,
                                 'raw_data': _product_data
                             })
                     except ProductCard.MultipleObjectsReturned:
@@ -223,12 +222,12 @@ def make_fbs_order(store, raw_data, rebuild=False):
                             .delete()
                     order_item.product_card = product_card
 
-                if order_item_changed:
-                    order_item.updated_at = now
-                    order_item.save()
+            if order_item_changed:
+                order_item.updated_at = now
+                order_item.save()
 
         order.updated_at = now
-        order.raw_data = simplejson.loads(simplejson.dumps(_order, ignore_nan=True))
+        order.raw_data = _order
         order.save()
 
     return order
