@@ -1,12 +1,13 @@
+import datetime
 import math
 import uuid
-import datetime
 from urllib.parse import urljoin
 
 import requests
+import pandas as pd
+import simplejson
 import dateutil.parser
 from pytz import timezone
-import pandas as pd
 
 
 FBS_ORDERS_BASE_API = 'https://suppliers-orders.wildberries.ru'
@@ -14,8 +15,11 @@ FBS_ORDERS_STATUSES_BASE_API = 'https://marketplace-remotewh.wildberries.ru'
 STATISTICS_BASE_API = 'https://suppliers-stats.wildberries.ru'
 CONTENT_BASE_API = 'https://suppliers-api.wildberries.ru'
 
+
 def _get_session_for_content_api(authorization_token):
-    """Возвращает обьект сессии для работы с Content API."""
+    """
+        Возвращает обьект сессии для работы с Content API.
+    """
     session = requests.Session()
     session.headers.update({
         'Authorization': authorization_token,
@@ -25,8 +29,9 @@ def _get_session_for_content_api(authorization_token):
 
 
 def _get_product_list_request_data(supplier_id, offset, limit):
-    """Формирование начальных данных
-       для получения карточек товаров Content API.
+    """
+        Формирование начальных данных
+        для получения карточек товаров Content API.
     """
     return {
         'jsonrpc': '2.0',
@@ -42,7 +47,8 @@ def _get_product_list_request_data(supplier_id, offset, limit):
 
 
 def check_connection(access):
-    """Проверка работы
+    """
+        Проверка работы
         /card/list/ API-эндпоинта suppliers-api.wildberries.ru и,
         /api/v1/supplier/orders API-эндпоинта suppliers-stats.wildberries.ru и,
         /api/v1/supplier/reportDetailByPeriod API-эндпоинта https://suppliers-orders.wildberries.ru и
@@ -93,8 +99,9 @@ def check_connection(access):
 
 
 def product_list(access, page_size=50):
-    """Получение генератора с "сырыми" данными товаров в формате JSON.
-       Каждый вызов функции next() возвращает 1 объект.
+    """
+        Получение генератора с "сырыми" данными товаров в формате JSON.
+        Каждый вызов функции next() возвращает 1 объект.
             Аргументы:
                 access (dict): Словарь с данными для авторизации в API.
                 page_size (int): Максимальное количество карточек товаров,
@@ -139,9 +146,10 @@ def product_list(access, page_size=50):
 
 
 def statistics_sales_list(access, from_datetime):
-    """Получение генератора с "сырыми" данными продаж в формате JSON.
-       Каждый вызов функции next() возвращает 1 объект.
-       Выгружает продажи с переданной даты по сегодняшний день.
+    """
+        Получение генератора с "сырыми" данными продаж в формате JSON.
+        Каждый вызов функции next() возвращает 1 объект.
+        Выгружает продажи с переданной даты по сегодняшний день.
             Параметры:
                 access (dict): Словарь с данными для авторизации в API.
                 from_datetime (datetime): Конкретная дата с которой выгружать продажи.
@@ -176,27 +184,26 @@ def fbs_orders_statuses_list(access, from_datetime, to_datetime):
     if response.status_code != requests.codes.ok:
         return []
 
-    response_data = response.json()
-
-
     order_statuses = []
-    for order in response_data:
+    for order in response.json():
         last_status = order['items'][0]
         for order_status in order['items']:
-            if dateutil.parser.parse(order_status['date']) \
-               > dateutil.parser.parse(last_status['date']):
+            if (dateutil.parser.parse(order_status['date'])
+                        > dateutil.parser.parse(last_status['date'])
+                    ):
                 last_status = order_status
         order_statuses.append({
             'order_id': int(order['order_id']),
-            'status': last_status['status']
+            'status': last_status['status'],
         })
     return order_statuses
 
 
 def fbs_order_list(access, from_datetime, to_datetime):
-    """Получение генератора с "сырыми" данными заказов,
-       сопоставленных с продажими и статусами заказов в формате JSON.
-       Каждый вызов функции next() возвращает 1 объект.
+    """
+        Получение генератора с "сырыми" данными заказов,
+        сопоставленных с продажими и статусами заказов в формате JSON.
+        Каждый вызов функции next() возвращает 1 объект.
             Параметры:
                 access (dict): Словарь с данными для авторизации в API.
                 from_datetime (datetime): Конкретная дата с которой выгружать продажи.
@@ -222,31 +229,103 @@ def fbs_order_list(access, from_datetime, to_datetime):
     for order in response_data:
         for order_item in order['items']:
             order_items.append({
-                'order_id': int(order['order_id']),
                 'date_created': order['date_created'],
+                'order_id': int(order['order_id']),
                 'wb_wh_id': order['wb_wh_id'],
+                'chrt_id': order_item['chrt_id'],
+                'status': order_item['status'],
                 'rid': int(order_item['rid']),
                 'total_price': order_item['total_price'],
-                'chrt_id': order_item['chrt_id']
             })
-
-    order_items_df = pd.DataFrame.from_records(order_items, index='rid')
     sales_df = pd.DataFrame.from_records(
-        statistics_sales_list(access=access, from_datetime=from_datetime),
-        index='rid'
+        data=statistics_sales_list(
+            access=access,
+            from_datetime=from_datetime
+        ),
+        index='rid',
+        exclude=[
+            'realizationreport_id',
+            'suppliercontract_code',
+            'rrd_id',
+            'gi_id',
+            'subject_name',
+            'brand_name',
+            'sa_name',
+            'barcode', # ?
+            'doc_type_name',
+            'supplier_oper_name',
+            'order_dt', 'sale_dt', 'rr_dt',
+            'shk_id',
+            'office_name',
+            'gi_box_type_name',
+        ]
     )
     orders_statuses_df = pd.DataFrame.from_records(
-        fbs_orders_statuses_list(access=access, from_datetime=from_datetime,
-                                 to_datetime=to_datetime))
+        data=fbs_orders_statuses_list(
+            access=access,
+            from_datetime=from_datetime,
+            to_datetime=to_datetime,
+        ),
+    )
 
-    order_items_df = order_items_df.merge(sales_df, on='rid', how='left')
-    order_items_df = order_items_df.merge(orders_statuses_df, on='order_id', how='left')
+    pd.set_option('display.max_columns', None)
 
-    for order, order_items in order_items_df.fillna(0).groupby(
-            by=['order_id', 'date_created', 'status']):
-        yield {
+    order_items_df = pd.DataFrame.from_records(order_items, index='rid') \
+        .merge(sales_df, on='rid', how='left') \
+        .merge(orders_statuses_df, on='order_id', how='left')
+    order_items_df['total_price'] = order_items_df['total_price'].apply(lambda x: x / 100)
+    order_items_df['status_x'] = order_items_df['status_x'].fillna(0)
+    order_items_df['status_y'] = order_items_df['status_y'].fillna(0)
+    order_items_df['status'] = order_items_df \
+        .apply(lambda x: '%s%s' % (int(x['status_x']), int(x['status_y'])), axis=1)
+    order_items_df = order_items_df.drop(columns=[
+        'status_x', 'status_y',
+    ])
+
+    order_item_financial_columns = [
+        'nds',
+        'cost_amount',
+        'retail_price',
+        'retail_amount',
+        'retail_commission',
+        'sale_percent',
+        'commission_percent',
+        'customer_reward',
+        'supplier_reward',
+        'retail_price_withdisc_rub',
+        'for_pay',
+        'for_pay_nds',
+        'delivery_amount',
+        'return_amount',
+        'delivery_rub',
+        'product_discount_for_report',
+        'supplier_promo',
+        'supplier_spp',
+    ]
+    order_item_group_columns = [
+        'chrt_id',
+        'wb_wh_id',
+        'total_price',
+        'nm_id',
+        'ts_name',
+        'quantity',
+    ]
+    order_group_columns = [
+        'order_id',
+        'date_created',
+        'status',
+    ]
+    for order, order_items in order_items_df.groupby(by=order_group_columns):
+        order_items = order_items.drop(columns=order_group_columns)
+
+        order_items = order_items \
+            .groupby(by=order_item_group_columns, dropna=False) \
+            .agg({c: 'sum' for c in order_item_financial_columns}) \
+            .reset_index()
+
+        yield simplejson.loads(simplejson.dumps({
             'order_id': int(order[0]),
             'date_created': order[1],
-            'status': int(order[2]),
+            'status': order[2],
             'items': order_items.to_dict(orient='records')
-        }
+        } , ignore_nan=True))
